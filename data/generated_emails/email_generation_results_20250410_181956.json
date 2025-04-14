@@ -1,0 +1,13 @@
+[
+  {
+    "contact": {
+      "name": "",
+      "message": "[Pour \u00eatre clair, ceci n\u2019est pas un message commercial]\n\nBonjour Madame Delerue-Clergue,\n\nJe me permets de vous contacter car je travaille sur une nouvelle solution pens\u00e9e pour accompagner les agents immobiliers gr\u00e2ce \u00e0 la technologie.\n\nDe formation en informatique, j\u2019ai travaill\u00e9 dans le secteur de la fintech et dans des startups, o\u00f9 j\u2019ai con\u00e7u des logiciels qui aident les professionnels \u00e0 gagner du temps et \u00e0 simplifier leurs t\u00e2ches au quotidien.\n\nAujourd\u2019hui, je prends le temps d\u2019\u00e9changer avec des agents comme vous pour comprendre vos vrais d\u00e9fis sur le terrain, et identifier ce qu\u2019on pourrait am\u00e9liorer avec des outils simples et concrets.\n\nJe ne vends rien \u2014 je cherche simplement \u00e0 \u00e9couter et apprendre.\n\nSeriez-vous disponible pour un court \u00e9change (20\u201330 min) ? En remerciement, vous b\u00e9n\u00e9ficierez d\u2019un acc\u00e8s gratuit \u00e0 la solution d\u00e8s son lancement.\n\nVous pouvez me proposer un cr\u00e9neau, ou r\u00e9server directement ici :\n\ud83d\udc49 https://calendly.com/mkarim-abbes/30min\n\nMerci beaucoup pour votre temps et votre retour,\nKarim Abbes",
+      "profile_url": "https://www.linkedin.com/in/ACoAACKvkmYB0TyITFeu9oenqibRTJY5wIqMm00",
+      "email": "clemziedelerue@gmail.com",
+      "website": ""
+    },
+    "error": "API call failed with status code 401: {\"error\":{\"message\":\"Authentication Fails, Your api key: ****cdef is invalid\",\"type\":\"authentication_error\",\"param\":null,\"code\":\"invalid_request_error\"}}",
+    "timestamp": "2025-04-10 18:19:55"
+  }
+]
