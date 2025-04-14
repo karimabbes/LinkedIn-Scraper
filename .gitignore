@@ -29,6 +29,7 @@ ENV/
 config/credentials.json
 config/linkedin_cookies.pkl
 config/token.pickle
+data/
 
 
 # IDE files
