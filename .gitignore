@@ -27,6 +27,9 @@ var/
 venv/
 ENV/
 config/credentials.json
+config/linkedin_cookies.pkl
+config/token.pickle
+
 
 # IDE files
 .idea/
