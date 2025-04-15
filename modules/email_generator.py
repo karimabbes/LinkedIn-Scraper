@@ -11,9 +11,11 @@ from datetime import datetime
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.credentials import DEEPSEEK_API_KEY
 from modules.gmail_integration import GmailIntegration
+from modules.email_prompt_template import get_email_prompt_template
+from modules.gmail_checker import GmailChecker
 
 class EmailGenerator:
-    def __init__(self, api_key=None, use_gmail=False):
+    def __init__(self, api_key=None, use_gmail=False, check_sent_emails=False):
         """Initialize the EmailGenerator with DeepSeek API key."""
         self.api_key = api_key or DEEPSEEK_API_KEY
         self.api_url = "https://api.deepseek.com/v1/chat/completions"
@@ -23,158 +25,172 @@ class EmailGenerator:
         }
         self.use_gmail = use_gmail
         self.gmail_integration = GmailIntegration() if use_gmail else None
+        self.check_sent_emails = check_sent_emails
+        self.gmail_checker = GmailChecker() if check_sent_emails else None
         
-        # Default email templates
-        self.templates = {
-            "default": """
-            Subject: Connecting with {name} regarding {topic}
-            
-            Hi {name},
-            
-            {personalized_intro}
-            
-            {main_content}
-            
-            {call_to_action}
-            
-            Best regards,
-            {sender_name}
-            """,
-            
-            "follow_up": """
-            Subject: Following up - {topic}
-            
-            Hi {name},
-            
-            {personalized_intro}
-            
-            {main_content}
-            
-            {call_to_action}
-            
-            Best regards,
-            {sender_name}
-            """
-        }
+        # Follow-up email template
+        self.template = """
+Subject: {topic}
+        
+{personalized_intro}
+
+{main_content}
+
+{call_to_action}
+
+{signature}
+"""
     
-    def generate_email(self, contact_data, template_name="default", custom_prompt=None):
+    def generate_email(self, contact_data, custom_prompt=None):
         """
-        Generate a personalized email for a contact using DeepSeek.
+        Generate a personalized email for a contact using the DeepSeek API.
         
         Args:
             contact_data (dict): Dictionary containing contact information
-            template_name (str): Name of the template to use
             custom_prompt (str, optional): Custom prompt to use instead of the default
             
         Returns:
             dict: Dictionary containing the generated email and metadata
         """
-        # Get the template
-        template = self.templates.get(template_name, self.templates["default"])
-        
-        # Prepare the prompt for DeepSeek
-        if custom_prompt:
-            prompt = custom_prompt
-        else:
-            prompt = self._create_default_prompt(contact_data, template_name)
-        
-        # Call DeepSeek API
         try:
+            # Check if we've already sent an email to this contact
+            if self.check_sent_emails and self.gmail_checker:
+                email = contact_data.get('email')
+                if email:
+                    if self.gmail_checker.check_if_email_sent(email):
+                        print(f"Email already sent to {email} in the past 30 days. Skipping.")
+                        last_email_date = self.gmail_checker.get_last_email_date(email)
+                        return {
+                            "skipped": True,
+                            "reason": "Email already sent",
+                            "last_email_date": last_email_date,
+                            "contact": contact_data
+                        }
+            
+            # Create the prompt for the AI
+            prompt = custom_prompt or self._create_default_prompt(contact_data)
+            
+            # Call the DeepSeek API
             response = self._call_deepseek_api(prompt)
             
-            # Extract the email content from the response
+            if "error" in response:
+                return {"error": response["error"]}
+            
+            # Extract the generated email content
             email_content = response.get("choices", [{}])[0].get("message", {}).get("content", "")
             
-            # If the response doesn't look like an email, try to extract it
-            if not email_content.strip().startswith("Subject:"):
-                # Try to find the email in the response
-                email_parts = email_content.split("\n\n")
-                for part in email_parts:
-                    if part.strip().startswith("Subject:"):
-                        email_content = part
-                        break
+            # Extract topics from the email content
+            topics = self._extract_topics(email_content)
             
-            # Create the result
-            result = {
+            # Format the email with the template
+            formatted_email = self.template.format(
+                name=contact_data.get("name", "there"),
+                topic=topics.get("topic", "our conversation"),
+                personalized_intro=topics.get("personalized_intro", ""),
+                main_content=topics.get("main_content", ""),
+                call_to_action=topics.get("call_to_action", ""),
+                signature=topics.get("signature", "Best regards,\nKarim Abbes\nhttps://www.linkedin.com/in/karimabbes/"),
+            )
+            
+            return {
+                "email_content": formatted_email,
+                "topics": topics,
                 "contact": contact_data,
-                "email_content": email_content,
-                "template_used": template_name,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "model": response.get("model", "deepseek-chat")
             }
             
-            return result
-        
         except Exception as e:
-            print(f"Error generating email for {contact_data.get('name', 'Unknown')}: {str(e)}")
-            return {
-                "contact": contact_data,
-                "error": str(e),
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
+            return {"error": str(e)}
     
-    def _create_default_prompt(self, contact_data, template_name):
-        """Create a default prompt for DeepSeek based on contact data."""
+    def _create_default_prompt(self, contact_data):
+        """
+        Create a default prompt for the AI based on contact data.
+        
+        Args:
+            contact_data (dict): Dictionary containing contact information
+            
+        Returns:
+            str: Prompt for the AI
+        """
         name = contact_data.get("name", "the contact")
         message = contact_data.get("message", "")
         profile_url = contact_data.get("profile_url", "")
-        email = contact_data.get("email", "")
-        website = contact_data.get("website", "")
         
-        # Extract potential topics from the message
-        topics = self._extract_topics(message)
+        # Get the prompt template from the separate file
+        template = get_email_prompt_template()
         
-        prompt = f"""
-        You are an expert email writer. Please write a personalized email to {name}.
-        
-        Contact Information:
-        - Name: {name}
-        - Previous Message: {message}
-        - Profile URL: {profile_url}
-        - Email: {email}
-        - Website: {website}
-        
-        Potential Topics: {', '.join(topics) if topics else 'Not specified'}
-        
-        Requirements:
-        1. The email should be personalized based on the contact's information
-        2. Include a subject line starting with "Subject:"
-        3. The email should be professional but conversational
-        4. If there's a previous message, reference it subtly
-        5. Include a clear call to action
-        6. Keep the email concise (3-5 paragraphs)
-        7. If this is a follow-up email, acknowledge the previous contact
-        
-        Format the email as follows:
-        Subject: [Your subject line]
-        
-        [Email body]
-        
-        Best regards,
-        [Your name]
-        
-        Please generate a complete email that I can use directly.
-        """
+        # Format the template with the contact data
+        prompt = template.format(
+            name=name,
+            message=message,
+            profile_url=profile_url
+        )
         
         return prompt
     
     def _extract_topics(self, message):
-        """Extract potential topics from a message."""
+        """
+        Extract topics and email sections from the AI response.
+        
+        Args:
+            message (str): The AI response message
+            
+        Returns:
+            dict: Dictionary containing extracted topics and email sections
+        """
         if not message:
-            return []
+            return {}
         
-        # Simple topic extraction - look for common business topics
-        topics = []
-        common_topics = [
-            "real estate", "property", "housing", "investment", "business", 
-            "partnership", "collaboration", "opportunity", "project", "service",
-            "consulting", "marketing", "sales", "development", "technology"
-        ]
+        # Initialize the topics dictionary
+        topics = {}
         
-        message_lower = message.lower()
-        for topic in common_topics:
-            if topic in message_lower:
-                topics.append(topic)
+        # Try to parse the JSON response from the AI
+        try:
+            # Find JSON content in the message (it might be surrounded by markdown code blocks)
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', message, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                # Try to find any JSON-like content
+                json_match = re.search(r'\{.*\}', message, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                else:
+                    json_str = message
+            
+            # Parse the JSON
+            import json
+            parsed = json.loads(json_str)
+            
+            # Extract the email sections
+            topics["personalized_intro"] = parsed.get("personalized_intro", "")
+            topics["main_content"] = parsed.get("main_content", "")
+            topics["call_to_action"] = parsed.get("call_to_action", "")
+            topics["topic"] = parsed.get("topic", "our conversation")
+            topics["signature"] = parsed.get("signature", "")
+
+        except Exception as e:
+            print(f"Error parsing AI response: {e}")
+            # Fallback to simple topic extraction
+            common_topics = [
+                "real estate", "property", "housing", "investment", "business", 
+                "partnership", "collaboration", "opportunity", "project", "service",
+                "consulting", "marketing", "sales", "development", "technology"
+            ]
+            
+            message_lower = message.lower()
+            for topic in common_topics:
+                if topic in message_lower:
+                    topics["topic"] = topic
+                    break
+            
+            # Set default values for email sections
+            topics["personalized_intro"] = ""
+            topics["main_content"] = ""
+            topics["call_to_action"] = ""
+            topics["signature"] = ""
         
         return topics
     
@@ -197,14 +213,13 @@ class EmailGenerator:
         
         return response.json()
     
-    def batch_generate_emails(self, csv_file_path, output_dir=None, template_name="default", save_as_drafts=False, sender_email=None):
+    def batch_generate_emails(self, csv_file_path, output_dir=None, save_as_drafts=False, sender_email=None):
         """
         Generate emails for all contacts in a CSV file.
         
         Args:
             csv_file_path (str): Path to the CSV file
             output_dir (str, optional): Directory to save the generated emails
-            template_name (str): Name of the template to use
             save_as_drafts (bool): Whether to save emails as Gmail drafts
             sender_email (str, optional): Email address to send from
             
@@ -227,13 +242,22 @@ class EmailGenerator:
         # Generate emails for each contact
         results = []
         gmail_drafts = []
+        skipped_contacts = []
         
         for i, contact in enumerate(contacts):
-            print(f"Generating email for {contact.get('name', f'Contact {i+1}')} ({i+1}/{len(contacts)})...")
+            print(f"Processing {contact.get('name', f'Contact {i+1}')} ({i+1}/{len(contacts)})...")
             
             # Generate the email
-            result = self.generate_email(contact, template_name)
+            result = self.generate_email(contact)
             
+            # Check if the email was skipped
+            if result.get("skipped", False):
+                print(f"Skipped {contact.get('name', f'Contact {i+1}')}: {result.get('reason', 'Unknown reason')}")
+                if result.get("last_email_date"):
+                    print(f"Last email sent on: {result.get('last_email_date')}")
+                skipped_contacts.append(result)
+                continue
+
             # Save the email to a file
             if "error" not in result:
                 email_filename = f"email_{contact.get('name', f'contact_{i+1}').replace(' ', '_').lower()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
@@ -243,14 +267,25 @@ class EmailGenerator:
                     f.write(result["email_content"])
                 
                 result["saved_to"] = email_filepath
-                
                 # Save as Gmail draft if requested
                 if save_as_drafts and self.gmail_integration:
                     # Extract subject and body from the email content
                     email_content = result["email_content"]
-                    subject_line = email_content.split('\n')[0]
-                    subject = subject_line.replace('Subject: ', '')
-                    body = '\n'.join(email_content.split('\n')[1:]).strip()
+                    
+                    # Find the subject line by looking for "Subject: " at the beginning of a line
+                    subject = ""
+                    body = email_content
+                    
+                    # Split the email content into lines
+                    lines = email_content.split('\n')
+                    
+                    # Look for the subject line
+                    for i, line in enumerate(lines):
+                        if line.strip().startswith("Subject:"):
+                            subject = line.replace("Subject:", "").strip()
+                            # Join the remaining lines as the body
+                            body = '\n'.join(lines[i+1:]).strip()
+                            break
                     
                     # Get recipient email from contact data
                     to_email = contact.get('email')
@@ -283,11 +318,15 @@ class EmailGenerator:
         results_filepath = os.path.join(output_dir, results_filename)
         
         with open(results_filepath, 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=2)
+            json.dump({
+                "generated_emails": results,
+                "skipped_contacts": skipped_contacts
+            }, f, indent=2)
         
         # Print summary
         print(f"\nEmail generation complete!")
         print(f"Generated {len(results)} emails")
+        print(f"Skipped {len(skipped_contacts)} contacts (already sent emails)")
         if save_as_drafts and self.gmail_integration:
             print(f"Created {len(gmail_drafts)} Gmail drafts")
         

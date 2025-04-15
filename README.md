@@ -1,215 +1,133 @@
-# LinkedIn Scraper
+# LinkedIn Scraper and Email Generator
 
-A Python application that scrapes LinkedIn messages related to real estate professionals using Selenium.
+A Python-based tool for scraping LinkedIn messages and generating personalized follow-up emails.
 
 ## Features
 
-- Automated LinkedIn login using credentials from environment variables
-- Option to use existing session via cookies for faster and more reliable access
-- Scrapes messages from LinkedIn's messaging section
-- Filters messages based on customizable keywords
-- Extracts contact information for real estate professionals
-- Saves results to CSV files for easy analysis
-- Generates personalized emails using AI
-- Option to save generated emails as Gmail drafts
-- Integrated workflow from scraping to email generation
+- **LinkedIn Scraping**: Automatically scrapes LinkedIn messages and saves contact information to a CSV file.
+- **Email Generation**: Generates personalized follow-up emails based on the scraped data.
+- **Gmail Integration**: Option to save generated emails as Gmail drafts.
+- **Sent Email Checking**: Option to check if emails have already been sent to contacts to avoid duplicates.
 
 ## Prerequisites
 
-- Python 3.7 or higher
-- Chrome browser installed
-- ChromeDriver compatible with your Chrome version
-- Gmail account (for saving emails as drafts)
+- Python 3.8 or higher
+- Chrome browser
+- ChromeDriver (compatible with your Chrome version)
+- Gmail account (for saving drafts)
 
-## Setup Instructions
+## Setup
 
-### 1. Clone the Repository
+1. Clone the repository:
 
-```bash
-git clone <repository-url>
-cd LinkedIn-Scraper
-```
+   ```
+   git clone https://github.com/yourusername/linkedin-scraper.git
+   cd linkedin-scraper
+   ```
 
-### 2. Create and Activate a Virtual Environment
+2. Create a virtual environment and activate it:
 
-#### On macOS/Linux:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-```bash
-# Create a virtual environment
-python -m venv venv
+3. Install dependencies:
 
-# Activate the virtual environment
-source venv/bin/activate
-```
+   ```
+   pip install -r requirements.txt
+   ```
 
-#### On Windows:
+4. Set up environment variables:
 
-```bash
-# Create a virtual environment
-python -m venv venv
+   - Create a `.env` file in the project root
+   - Add your LinkedIn credentials and DeepSeek API key:
+     ```
+     LINKEDIN_EMAIL=your_email@example.com
+     LINKEDIN_PASSWORD=your_password
+     DEEPSEEK_API_KEY=your_api_key
+     ```
 
-# Activate the virtual environment
-venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Set Up Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```
-LINKEDIN_EMAIL=your_linkedin_email
-LINKEDIN_PASSWORD=your_linkedin_password
-DEEPSEEK_API_KEY=your_deepseek_api_key
-```
-
-### 5. Set Up Gmail API (for saving emails as drafts)
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Gmail API for your project
-4. Create OAuth 2.0 credentials (Desktop application)
-5. Download the credentials JSON file
-6. Place the credentials file in the `config` directory as `credentials.json`
-
-### 6. Install ChromeDriver
-
-#### Option 1: Include ChromeDriver in the project directory (Recommended)
-
-1. Download ChromeDriver from [https://chromedriver.chromium.org/downloads](https://chromedriver.chromium.org/downloads)
-2. Place the ChromeDriver executable in the `drivers` directory
-
-#### Option 2: Use system ChromeDriver
-
-Make sure ChromeDriver is installed and available in your system PATH.
+5. Set up Gmail API (for saving emails as drafts):
+   - Go to the [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
+   - Enable the Gmail API for your project
+   - Create OAuth 2.0 credentials (Desktop application)
+   - Download the credentials JSON file
+   - Place the credentials file in the `config` directory as `credentials.json`
 
 ## Usage
 
 ### Basic Scraping
 
-```bash
+```
 python main.py
 ```
 
-This will:
+### Advanced Scraping
 
-1. Log in to LinkedIn (using cookies if available, otherwise with credentials)
-2. Scrape messages from your LinkedIn inbox
-3. Filter messages based on keywords (default: "real estate,agent")
-4. Extract contact information from profiles
-5. Save results to a CSV file in the `data` directory
-
-### Advanced Scraping Options
-
-```bash
-python main.py --keywords "real estate,agent,broker" --max-threads 10 --output custom_filename.csv
+```
+python main.py --use-cookies --filter "real estate" --max-threads 4
 ```
 
-### Integrated Workflow: Scraping + Email Generation
+### Integrated Workflow (Scraping + Email Generation)
 
-To scrape LinkedIn profiles and immediately generate personalized emails:
-
-```bash
-python main.py --generate-emails
+```
+python main.py --generate-emails --gmail --sender-email your_email@gmail.com
 ```
 
-This will:
+### Check for Sent Emails
 
-1. Scrape LinkedIn messages and extract contact information
-2. Save the results to a CSV file
-3. Generate personalized emails for each contact
-4. Save the emails to the `data/generated_emails` directory
-
-### Saving Emails as Gmail Drafts
-
-To save generated emails as Gmail drafts:
-
-```bash
-python main.py --generate-emails --gmail --sender-email your.email@gmail.com
+```
+python main.py --generate-emails --check-sent-emails
 ```
 
-This will:
+This option will check if emails have already been sent to contacts in the past 30 days, helping you avoid sending duplicate emails.
 
-1. Scrape LinkedIn messages and extract contact information
-2. Save the results to a CSV file
-3. Generate personalized emails for each contact
-4. Save the emails as drafts in your Gmail account
-5. Also save the emails to the local filesystem
+## Command Line Arguments
 
-### Using Different Email Templates
+### LinkedIn Scraping Options
 
-```bash
-python main.py --generate-emails --email-template follow_up
-```
+- `--use-cookies`: Use cookies for authentication
+- `--force-login`: Force login even if cookies are valid
+- `--output`: Output filename for the CSV file
+- `--filter`: Filter contacts by keyword in name or message
+- `--max-threads`: Maximum number of threads for scraping (default: 4)
 
-### Complete Example
+### Email Generation Options
 
-```bash
-python main.py --use-cookies --keywords "real estate,agent" --max-threads 10 --generate-emails --gmail --sender-email your.email@gmail.com --email-template follow_up
-```
-
-## Email Generation
-
-The application can generate personalized emails for contacts scraped from LinkedIn using the DeepSeek API.
-
-### Basic Usage
-
-```bash
-python generate_emails.py
-```
-
-This will:
-
-1. Find the most recent CSV file in the `data` directory
-2. Generate personalized emails for each contact
-3. Save the emails to the `data/generated_emails` directory
-
-### Advanced Options
-
-```bash
-python generate_emails.py --csv path/to/contacts.csv --output path/to/output --template default
-```
-
-#### Saving Emails as Gmail Drafts
-
-To save generated emails as Gmail drafts:
-
-```bash
-python generate_emails.py --gmail --sender-email your.email@gmail.com
-```
-
-This will:
-
-1. Authenticate with your Gmail account (first time only)
-2. Generate personalized emails for each contact
-3. Save the emails as drafts in your Gmail account
-4. Also save the emails to the local filesystem
-
-Note: The first time you use the Gmail integration, a browser window will open asking you to authorize the application to access your Gmail account.
+- `--generate-emails`: Generate emails after scraping
+- `--gmail`: Save generated emails as Gmail drafts
+- `--sender-email`: Email address to send from when saving drafts
+- `--check-sent-emails`: Check if emails have already been sent to contacts
+- `--api-key`: DeepSeek API key (overrides config)
 
 ## Troubleshooting
 
 ### LinkedIn Verification Requests
 
-The application now includes improved cookie management to reduce verification requests. If you still encounter verification requests:
+If LinkedIn requests verification during login:
 
-1. Enter the verification code when prompted
-2. The application will automatically save the updated cookies for future use
-3. Future runs should require fewer verification requests
+1. The script will prompt you to enter the verification code
+2. Enter the code when prompted
+3. The script will continue automatically after verification
 
 ### Browser Issues
 
 If you encounter browser-related issues:
 
-1. Make sure ChromeDriver is compatible with your Chrome version
-2. Try restarting the application
-3. Check that your LinkedIn credentials are correct
+1. Ensure Chrome and ChromeDriver versions match
+2. Try clearing browser cache and cookies
+3. Check your internet connection
+
+### Gmail API Issues
+
+If you encounter issues with the Gmail API:
+
+1. Ensure your credentials.json file is correctly placed in the config directory
+2. Check that you have enabled the Gmail API in your Google Cloud Console
+3. Verify that your OAuth consent screen is properly configured
 
 ## License
 
-[Your License Information]
+This project is licensed under the MIT License - see the LICENSE file for details.
