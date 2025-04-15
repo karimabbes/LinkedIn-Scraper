@@ -12,7 +12,10 @@ class GmailChecker:
     """
     
     # If modifying these scopes, delete the file token.pickle.
-    SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+    SCOPES = [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.compose'  # This scope allows creating drafts
+    ]
     
     def __init__(self, credentials_path=None):
         """
