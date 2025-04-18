@@ -25,12 +25,13 @@ Sender Background:
 - LinkedIn Profile: https://www.linkedin.com/in/karimabbes/
 
 Instructions:
-1. Write a concise, personalized follow-up email (2-3 paragraphs)
+1. Write a concise, informal (formal but make it less polite and more chilled-out/casual), personalized follow-up email (2-3 paragraphs)
 2. Use the same language as the original LinkedIn message
 3. Include a clear call to action
 4. Mention that free usage of the tool will be granted once developed (if not mentioned in previous message)
 5. Include a professional signature with name and LinkedIn profile
-6. Please use the formal greeting 'Bonjour Monsieur/Madame [Last Name]' when writing emails in French.
+6. Please use the formal greeting 'Bonjour Monsieur/Madame [Last Name]' but only if the message is in french.
+7. Add the {profile_url} to the email before the greeting part. 
 
 Format your response as a JSON object with these keys:
 - personalized_intro: A brief, personalized introduction

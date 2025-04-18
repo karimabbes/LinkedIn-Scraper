@@ -16,6 +16,31 @@ A Python-based tool for scraping LinkedIn messages and generating personalized f
 - ChromeDriver (compatible with your Chrome version)
 - Gmail account (for saving drafts)
 
+## ChromeDriver Setup
+
+1. Download ChromeDriver:
+
+   - Visit [ChromeDriver Downloads](https://chromedriver.chromium.org/downloads)
+   - Download the version that matches your Chrome browser version
+   - The file will be downloaded as a zip file (e.g., `chromedriver_mac64.zip`)
+
+2. Extract and set up ChromeDriver:
+
+   ```bash
+   # For macOS/Linux:
+   unzip chromedriver_mac64.zip  # or the name of your downloaded file
+   mv chromedriver drivers/      # Move to the drivers directory
+   chmod +x drivers/chromedriver # Make it executable
+
+   # For Windows:
+   # Simply extract the chromedriver.exe to the drivers directory
+   ```
+
+3. Verify the setup:
+   - The ChromeDriver should be in the `drivers` directory
+   - On macOS/Linux, it should be executable
+   - The path should match what's expected in the script
+
 ## Setup
 
 1. Clone the repository:
